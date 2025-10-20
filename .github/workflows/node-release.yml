@@ -1,0 +1,134 @@
+name: Node.js Package Release
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  release-check:
+    name: Check if version is published
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check if version is published
+        id: check
+        run: |
+          packageName="$( node -e "console.log(require('./package.json').name)" )"
+          currentVersion="$( node -e "console.log(require('./package.json').version)" )"
+          previousVersion="$(npm view $packageName version 2>/dev/null || echo '0.0.0')" 
+          isPublished="$(npm view $packageName --json 2>/dev/null | jq -c --arg cv "$currentVersion" 'any(. == $cv)' || echo 'false')"
+          echo "published=$isPublished" >> "$GITHUB_OUTPUT"
+          echo "previous-version=$previousVersion" >> "$GITHUB_OUTPUT"
+          echo "current-version=$currentVersion" >> "$GITHUB_OUTPUT"
+    outputs:
+      published: ${{ steps.check.outputs.published }}
+      previous-version: ${{ steps.check.outputs.previous-version }}
+      current-version: ${{ steps.check.outputs.current-version }}
+
+  publish_npm:
+    needs: release-check
+    if: ${{ needs.release-check.outputs.published == 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: "https://registry.npmjs.org"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build package
+        run: |
+          if npm run | grep -q "prepublishOnly"; then
+            npm run prepublishOnly
+          elif npm run | grep -q "build"; then
+            npm run build
+          else
+            echo "No build script found, skipping build step"
+          fi
+
+      - name: Get version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
+      - name: Prepare release
+        id: prepare_release
+        run: |
+          RELEASE_TYPE="$(node -e "console.log(require('semver').prerelease('${{ steps.package-version.outputs.current-version }}') ? 'prerelease' : 'regular')")"
+          if [[ $RELEASE_TYPE == 'regular' ]]; then
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to NPM (release)
+        if: ${{ steps.prepare_release.outputs.prerelease == 'false'}}
+        run: npm publish --access public --provenance
+      - name: Publish to NPM (prerelease)
+        if: ${{ steps.prepare_release.outputs.prerelease == 'true'}}
+        run: npm publish --tag next --access public --provenance
+
+  release_to_github:
+    needs: publish_npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build package
+        run: |
+          if npm run | grep -q "prepublishOnly"; then
+            npm run prepublishOnly
+          elif npm run | grep -q "build"; then
+            npm run build
+          else
+            echo "No build script found, skipping build step"
+          fi
+      - name: Create distribution archive
+        run: |
+          if [ -d "dist" ]; then
+            zip -qq -r dist.zip dist
+          else
+            echo "No dist directory found, creating empty archive"
+            touch empty.txt && zip -qq dist.zip empty.txt
+          fi
+      - name: Extract changelog for version
+        run: |
+          if [ -f "CHANGELOG.md" ]; then
+            awk '/# ${{needs.release-check.outputs.current-version }}/{f=1;next}/# ${{needs.release-check.outputs.previous-version}}/{f=0} f' CHANGELOG.md > changelog_for_version.md
+          else
+            echo "Release v${{needs.release-check.outputs.current-version}}" > changelog_for_version.md
+          fi
+          cat changelog_for_version.md
+
+      - name: Update Release Notes
+        id: update_release_notes
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: v${{ needs.release-check.outputs.current-version }}
+          name: v${{ needs.release-check.outputs.current-version }}
+          bodyFile: changelog_for_version.md
+          artifacts: dist.zip
+          allowUpdates: true
+          draft: false
+          prerelease: false
