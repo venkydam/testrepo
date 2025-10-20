@@ -15,7 +15,7 @@ jobs:
       - name: Use Node.js 18
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - name: Install dependencies
         run: npm ci
 
@@ -40,15 +40,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      contents: read
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 18
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "20"
           registry-url: "https://registry.npmjs.org"
-      - name: Install dependencies
-        run: npm ci
+      - name: Update npm
+        run: npm install -g npm@latest
+      - run: npm ci
       - name: Build package
         run: |
           if npm run | grep -q "prepublishOnly"; then
@@ -75,10 +76,10 @@ jobs:
 
       - name: Publish to NPM (release)
         if: ${{ steps.prepare_release.outputs.prerelease == 'false'}}
-        run: npm publish --access public --provenance
+        run: npm publish --access public
       - name: Publish to NPM (prerelease)
         if: ${{ steps.prepare_release.outputs.prerelease == 'true'}}
-        run: npm publish --tag next --access public --provenance
+        run: npm publish --tag next --access public
 
   release_to_github:
     needs: publish_npm
@@ -90,7 +91,7 @@ jobs:
       - name: Use Node.js 18
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - name: Install dependencies
         run: npm ci
       - name: Build package
