@@ -81,7 +81,7 @@ jobs:
         run: npm publish --tag next --access public
 
   release_to_github:
-    needs: publish_npm
+    needs: [release-check, publish_npm]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -113,9 +113,9 @@ jobs:
       - name: Extract changelog for version
         run: |
           if [ -f "CHANGELOG.md" ]; then
-            awk '/# ${{needs.release-check.outputs.current-version }}/{f=1;next}/# ${{needs.release-check.outputs.previous-version}}/{f=0} f' CHANGELOG.md > changelog_for_version.md
+            awk '/# ${{ needs.release-check.outputs.current-version }}/{f=1;next}/# ${{ needs.release-check.outputs.previous-version }}/{f=0} f' CHANGELOG.md > changelog_for_version.md
           else
-            echo "Release v${{needs.release-check.outputs.current-version}}" > changelog_for_version.md
+            echo "Release v${{ needs.release-check.outputs.current-version }}" > changelog_for_version.md
           fi
           cat changelog_for_version.md
 
