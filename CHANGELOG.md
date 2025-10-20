@@ -1,3 +1,9 @@
+# 1.0.3
+
+### ✨ Features and improvements
+
+- Testing with node 18
+
 # 1.0.2
 
 ### ✨ Features and improvements

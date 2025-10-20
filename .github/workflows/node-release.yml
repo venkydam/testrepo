@@ -125,7 +125,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: v${{ needs.release-check.outputs.current-version }}
+          tag: ${{ needs.release-check.outputs.current-version }}
           name: v${{ needs.release-check.outputs.current-version }}
           bodyFile: changelog_for_version.md
           artifacts: dist.zip
