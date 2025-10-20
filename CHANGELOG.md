@@ -2,7 +2,7 @@
 
 ### ✨ Features and improvements
 
-- Reusable workflow
+- Reusable workflow.
 
 # 1.0.3
 
