@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install dependencies
         run: npm ci
 
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - run: npm ci
       - name: Build package
         run: |
@@ -85,10 +85,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
       - name: Install dependencies
         run: npm ci
       - name: Build package
@@ -123,7 +123,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: ${{ needs.release-check.outputs.current-version }}
+          tag: v${{ needs.release-check.outputs.current-version }}
           name: v${{ needs.release-check.outputs.current-version }}
           bodyFile: changelog_for_version.md
           artifacts: dist.zip
