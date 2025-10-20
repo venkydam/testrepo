@@ -1,6 +1,6 @@
 {
   "name": "@venkydam/testrepo",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A simple Express.js server",
   "main": "index.js",
   "scripts": {
