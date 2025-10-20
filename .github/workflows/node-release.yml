@@ -46,8 +46,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "18"
-      - name: Update npm
-        run: npm install -g npm@latest
       - run: npm ci
       - name: Build package
         run: |
